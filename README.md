@@ -6,27 +6,32 @@
 ![Python version](https://img.shields.io/badge/Python-3.0%2B-blue?style=flat-square)
 ![License](https://img.shields.io/github/license/add-qwq/CRCMenu-Manager?style=flat-square)
 
-This project is a GUI tool for managing the Custom-Right-Click-Menu project (https://github.com/add-qwq/Custom-Right-Click-Menu). Embedding or modifying the right-click menu requires editing code files one by one, which is impractical for websites with a large number of code files. Therefore, this project provides two modes:
+This project is a GUI tool for managing the [Custom-Right-Click-Menu project](https://github.com/add-qwq/Custom-Right-Click-Menu). Embedding, updating, or removing right-click menus typically requires editing code files one by one, which is impractical for websites with numerous files. Therefore, this project provides three modes to simplify the process:
 
-1. Version Update
-As the name suggests, if you notice new commits in the Custom-Right-Click-Menu project that include updates, after updating your code files, you don't need to modify version numbers one by one. Just select the files and click the "Update Version" button to update all files at once, refreshing the browser cache for these files.
+1. Inject Project
+Eliminates the need to add external file references and HTML code to each file individually. Select the target files, input the required codes, and click "Execute Operation" to connect all files to the right-click menu component in one click.
 
-2. Inject Project
-This eliminates the need to add external file references and HTML code to each file individually. Simply select the files and click the "Inject Project" button to connect all files to the right-click menu component with one click.
+2. Update Version
+When the Custom-Right-Click-Menu project has updates, instead of modifying version numbers in each file manually, select the files, input the base code (without version numbers), and click "Execute Operation" to update all version numbers at once, refreshing browser cache.
 
-If you're interested, please read on for more details.
+3. Delete Project
+If you need to remove previously added right-click menu code from multiple files, select the files, input the exact codes that were added (including version numbers), and click "Execute Operation" to batch delete them.
+
+If you're interested, read on for detailed instructions.
 
 ---
 
-This tool enables batch processing of HTML/PHP files, offering features like version updating and content injection. It automatically creates backup files with the .bak extension before making any modifications, ensuring data security. The bilingual interface allows users to switch between English and Simplified Chinese for easier use.
+This tool enables batch processing of HTML/PHP files, offering features like version updating, content injection, and content deletion. It automatically creates backup files with the .bak extension before making any modifications, ensuring data security. The bilingual interface allows users to switch between English and Simplified Chinese for easier use.
 
 ## Key Features
 - Batch Processing: Handle multiple HTML/.htm/.php files simultaneously.
 - Auto Backup: Create .bak backups of original files before modification.
 - Version Update: Automatically update version numbers of CSS and JS files to refresh browser cache.
 - Project Injection: Batch add external resource references (Font Awesome, CSS, JS) and HTML code for the right-click menu.
+- Project Deletion: Batch remove previously added resource references and HTML code.
 - Bilingual Interface: Switch between English and Simplified Chinese directly in the UI.
 - Progress Tracking: Real-time progress bar and status updates for each processed file.
+- Persistent Configuration: File list and codes are saved automatically and retained on next launch.
 
 ## Quick Start
 
@@ -84,8 +89,8 @@ For macOS/Linux: Use the same command, replacing ";" with ":" in file paths if n
 
 ## How to Use
 
-### Step 1: Set Configuration Codes
-You can use the following default values and adjust them according to your needs:
+### Default Codes
+Use the following default values or adjust them according to your needs:
 
 Font Awesome Include Code:
 ```html
@@ -105,7 +110,7 @@ JS Include Code:
 Right-Click Menu HTML Code:
 ```html
 <div id="custom-menu">
-        <div class="menu-header">常规操作</div>
+        <div class="menu-header" id="general-menu-header">常规操作</div>
         <div class="menu-item" id="back-item" onclick="backAction()">
             <i class="fa fa-arrow-left"></i>
             <span>返回</span>
@@ -115,8 +120,8 @@ Right-Click Menu HTML Code:
             <span>刷新</span>
         </div>
 
-        <div class="menu-divider"></div>
-        <div class="menu-header">编辑操作</div>
+        <div class="menu-divider" id="edit-divider"></div>
+        <div class="menu-header" id="edit-menu-header">编辑操作</div>
         <div class="menu-item" id="copy-item" onclick="copyAction()">
             <i class="fa fa-copy"></i>
             <span>复制</span>
@@ -126,8 +131,8 @@ Right-Click Menu HTML Code:
             <span>粘贴</span>
         </div>
 
-        <div class="menu-divider"></div>
-        <div class="menu-header">链接操作</div>
+        <div class="menu-divider" id="link-divider"></div>
+        <div class="menu-header" id="link-menu-header">链接操作</div>
         <div class="menu-item" id="open-in-new-tab-item" onclick="openInNewTabAction()">
             <i class="fa fa-external-link"></i>
             <span>在新标签页打开</span>
@@ -137,8 +142,19 @@ Right-Click Menu HTML Code:
             <span>复制链接地址</span>
         </div>
 
-        <div class="menu-divider"></div>
-        <div class="menu-header">其他操作</div>
+        <div class="menu-divider" id="image-divider"></div>
+        <div class="menu-header" id="image-menu-header">图片操作</div>
+        <div class="menu-item" id="open-image-in-new-tab-item" onclick="openImageInNewTabAction()">
+            <i class="fa fa-external-link"></i>
+            <span>在新标签页打开</span>
+        </div>
+        <div class="menu-item" id="copy-image-url-item" onclick="copyImageUrlAction()">
+            <i class="fa fa-link"></i>
+            <span>复制图片地址</span>
+        </div>
+
+        <div class="menu-divider" id="other-divider"></div>
+        <div class="menu-header" id="other-menu-header">其他操作</div>
         <div class="menu-item" id="back-to-home-item" onclick="backToHomeAction()">
             <i class="fa fa-home"></i>
             <span>返回主页</span>
@@ -146,23 +162,34 @@ Right-Click Menu HTML Code:
     </div>
 ```
 
-### Step 2: Select Files
-1. Click Select Files to choose HTML/.htm/.php files from your local directory.
-2. Use Remove Selected Files or Clear File List to manage the file queue.
+### 1. Inject Project
+1. Select target files (if you have a previous configuration file CRCMenu-Manager_file_list.json, the file list will be retained automatically, no need to reselect).
+2. Fill in the code fields with the default values (or your custom codes).
+3. Select "Inject Project" from the dropdown menu.
+4. Click "Execute Operation" and confirm the action.
+5. Monitor progress via the status bar and progress bar.
 
-### Step 3: Choose Operation
-- Update Version: Click Update Version to update the version numbers of CSS and JS files in the selected files.
-- Inject Project: Click Inject Project to add external resource references (Font Awesome, CSS, JS) and HTML code for the right-click menu.
+### 2. Update Version
+1. Select target files (if you have a previous configuration file, the file list will be retained automatically).
+2. Fill in the code fields with your base codes (without version numbers). For example:
+   - If you used `<script src="/cdn/CRCMenu.js?v=8"></script>` when injecting, input `<script src="/cdn/CRCMenu.js"></script>` here.
+3. Select "Update Version" from the dropdown menu.
+4. Click "Execute Operation" and confirm the action.
+5. Monitor progress via the status bar and progress bar.
 
-### Step 4: Confirm and Monitor
-1. Confirm the operation (backups will be created automatically).
-2. Monitor progress via the status bar and progress bar.
+### 3. Delete Project
+1. Select target files (if you have a previous configuration file, the file list will be retained automatically).
+2. Fill in the code fields with the exact codes that were added (including version numbers). For example:
+   - If you used `<link rel="stylesheet" href="/cdn/CRCMenu.css?v=4">` when injecting, input the same code here.
+3. Select "Delete Project" from the dropdown menu.
+4. Click "Execute Operation" and confirm the action.
+5. Monitor progress via the status bar and progress bar.
 
 ### Post-Operation
 - A success message will appear if all files are processed successfully.
 - For partial failures, check the status bar for details.
 
-Note: Please save your configuration properly. The application will clear the CRCMenu-Manager_file_list.json file when it starts next time.
+Note: Your configuration (file list and codes) is saved automatically in CRCMenu-Manager_file_list.json and will be loaded on next launch.
 
 ## License
 This project is licensed under the [Apache License 2.0](https://github.com/add-qwq/CRCMenu-Manager/blob/main/LICENSE).
@@ -181,27 +208,32 @@ This project is licensed under the [Apache License 2.0](https://github.com/add-q
 ![Python version](https://img.shields.io/badge/Python-3.0%2B-blue?style=flat-square)
 ![License](https://img.shields.io/github/license/add-qwq/CRCMenu-Manager?style=flat-square)
 
-本项目是一个用于管理Custom-Right-Click-Menu项目（https://github.com/add-qwq/Custom-Right-Click-Menu）的GUI工具。由于右键菜单的嵌入或修改需要逐个编辑代码文件，这对于拥有大量代码文件的网站来说并不现实。因此，该项目提供了两种模式：
+本项目是一个用于管理[Custom-Right-Click-Menu项目](https://github.com/add-qwq/Custom-Right-Click-Menu)的GUI工具。由于右键菜单的嵌入、更新或删除通常需要逐个编辑代码文件，这对于拥有大量文件的网站来说并不现实。因此，该项目提供了三种模式来简化操作：
 
-1. 版本更新
-顾名思义，如果你发现Custom-Right-Click-Menu项目有新的提交且包含更新内容，在更新代码文件后，无需逐个修改版本号，只需选中文件并点击“更新版本”按钮，即可一键更新所有文件，刷新浏览器对这些文件的缓存
+1. 引入项目
+无需逐个在文件中添加外部文件引用和HTML代码，只需选择目标文件，输入所需代码，点击“执行操作”即可一键将所有文件接入右键菜单组件。
 
-2. 引入项目
-这使得你无需逐个在文件中添加外部文件引用和HTML代码，只需选择文件并点击“引入项目”按钮，即可一键将所有文件接入右键菜单组件
+2. 更新版本
+当Custom-Right-Click-Menu项目有更新时，无需逐个修改文件中的版本号，选择文件，输入基础代码（不含版本号），点击“执行操作”即可一键更新所有版本号，刷新浏览器缓存。
 
-如果你感兴趣，请继续往下阅读详细介绍
+3. 删除项目
+如果需要从多个文件中移除之前添加的右键菜单代码，选择文件，输入添加时使用的确切代码（包含版本号），点击“执行操作”即可批量删除。
+
+如果你感兴趣，请继续往下阅读详细介绍。
 
 ---
 
-该工具支持批量处理HTML/PHP文件，提供版本更新和内容注入等功能。修改文件前会自动创建扩展名为.bak的备份文件，确保数据安全。双语界面支持英文和简体中文切换，方便不同语言用户使用
+该工具支持批量处理HTML/PHP文件，提供版本更新、内容注入和内容删除等功能。修改文件前会自动创建扩展名为.bak的备份文件，确保数据安全。双语界面支持英文和简体中文切换，方便不同语言用户使用。
 
 ## 核心功能
 - 批量处理：同时处理多个HTML/.htm/.php文件
 - 自动备份：修改前自动创建原文件的.bak备份
 - 版本更新：自动更新CSS和JS文件的版本号，以刷新浏览器缓存
 - 项目引入：批量添加外部资源引用（Font Awesome、CSS、JS）和右键菜单的HTML代码
+- 项目删除：批量移除之前添加的资源引用和HTML代码
 - 双语界面：直接在界面中切换英文和简体中文
 - 进度监控：实时显示每个文件的处理进度和状态
+- 配置持久化：文件列表和代码自动保存，下次启动时自动加载
 
 ## 快速开始
 
@@ -259,8 +291,8 @@ pyinstaller -w -F --name "CRCMenu-Manager.exe" CRCMenu-Manager.py  # 生成Windo
 
 ## 使用指南
 
-### 步骤1：设置配置代码
-你可以使用以下默认值，并根据需求进行调整：
+### 默认代码
+可使用以下默认值，也可根据需求自行调整：
 
 Font Awesome引入代码：
 ```html
@@ -280,7 +312,7 @@ JS引入代码：
 右键菜单HTML代码：
 ```html
 <div id="custom-menu">
-        <div class="menu-header">常规操作</div>
+        <div class="menu-header" id="general-menu-header">常规操作</div>
         <div class="menu-item" id="back-item" onclick="backAction()">
             <i class="fa fa-arrow-left"></i>
             <span>返回</span>
@@ -290,8 +322,8 @@ JS引入代码：
             <span>刷新</span>
         </div>
 
-        <div class="menu-divider"></div>
-        <div class="menu-header">编辑操作</div>
+        <div class="menu-divider" id="edit-divider"></div>
+        <div class="menu-header" id="edit-menu-header">编辑操作</div>
         <div class="menu-item" id="copy-item" onclick="copyAction()">
             <i class="fa fa-copy"></i>
             <span>复制</span>
@@ -301,8 +333,8 @@ JS引入代码：
             <span>粘贴</span>
         </div>
 
-        <div class="menu-divider"></div>
-        <div class="menu-header">链接操作</div>
+        <div class="menu-divider" id="link-divider"></div>
+        <div class="menu-header" id="link-menu-header">链接操作</div>
         <div class="menu-item" id="open-in-new-tab-item" onclick="openInNewTabAction()">
             <i class="fa fa-external-link"></i>
             <span>在新标签页打开</span>
@@ -312,8 +344,19 @@ JS引入代码：
             <span>复制链接地址</span>
         </div>
 
-        <div class="menu-divider"></div>
-        <div class="menu-header">其他操作</div>
+        <div class="menu-divider" id="image-divider"></div>
+        <div class="menu-header" id="image-menu-header">图片操作</div>
+        <div class="menu-item" id="open-image-in-new-tab-item" onclick="openImageInNewTabAction()">
+            <i class="fa fa-external-link"></i>
+            <span>在新标签页打开</span>
+        </div>
+        <div class="menu-item" id="copy-image-url-item" onclick="copyImageUrlAction()">
+            <i class="fa fa-link"></i>
+            <span>复制图片地址</span>
+        </div>
+
+        <div class="menu-divider" id="other-divider"></div>
+        <div class="menu-header" id="other-menu-header">其他操作</div>
         <div class="menu-item" id="back-to-home-item" onclick="backToHomeAction()">
             <i class="fa fa-home"></i>
             <span>返回主页</span>
@@ -321,27 +364,38 @@ JS引入代码：
     </div>
 ```
 
-### 步骤2：选择文件
-1. 点击“选择文件”按钮，从本地目录选择HTML/.htm/.php文件
-2. 使用“移除选中文件”或“清空文件列表”管理文件队列
+### 1. 引入项目
+1. 选择目标文件（如果有之前的配置文件CRCMenu-Manager_file_list.json，文件列表会自动保留，无需重新选择）。
+2. 在代码输入框中填写默认值（或自定义代码）。
+3. 从下拉菜单中选择“引入项目”。
+4. 点击“执行操作”并确认。
+5. 通过状态栏和进度条监控处理进度。
 
-### 步骤3：选择操作
-- 版本更新：点击“更新版本”按钮，更新所选文件中CSS和JS文件的版本号
-- 引入项目：点击“引入项目”按钮，向所选文件添加Font Awesome、CSS、JS引用及HTML代码
+### 2. 更新版本
+1. 选择目标文件（如果有之前的配置文件，文件列表会自动保留）。
+2. 在代码输入框中填写基础代码（不含版本号）。例如：
+   - 若引入时使用的是`<script src="/cdn/CRCMenu.js?v=8"></script>`，此处输入`<script src="/cdn/CRCMenu.js"></script>`。
+3. 从下拉菜单中选择“更新版本”。
+4. 点击“执行操作”并确认。
+5. 通过状态栏和进度条监控处理进度。
 
-### 步骤4：确认并监控
-1. 确认操作（系统会自动创建备份文件）
-2. 通过状态栏和进度条监控处理进度
+### 3. 删除项目
+1. 选择目标文件（如果有之前的配置文件，文件列表会自动保留）。
+2. 在代码输入框中填写添加时使用的确切代码（包含版本号）。例如：
+   - 若引入时使用的是`<link rel="stylesheet" href="/cdn/CRCMenu.css?v=4">`，此处输入相同代码。
+3. 从下拉菜单中选择“删除项目”。
+4. 点击“执行操作”并确认。
+5. 通过状态栏和进度条监控处理进度。
 
 ### 操作完成后
-- 若所有文件处理成功，将显示成功提示
-- 若部分文件处理失败，可在状态栏查看详细信息
+- 若所有文件处理成功，将显示成功提示。
+- 若部分文件处理失败，可在状态栏查看详细信息。
 
-注意：请妥善保存你的配置。应用程序下次启动时会清空CRCMenu-Manager_file_list.json文件
+注意：你的配置（文件列表和代码）会自动保存在CRCMenu-Manager_file_list.json中，下次启动时会自动加载。
 
 ## 许可证
-本项目采用[Apache License 2.0](https://github.com/add-qwq/CRCMenu-Manager/blob/main/LICENSE)许可证
+本项目采用[Apache License 2.0](https://github.com/add-qwq/CRCMenu-Manager/blob/main/LICENSE)许可证。
 
 ## 反馈与贡献
-- 问题反馈：在[Issues页面](https://github.com/add-qwq/CRCMenu-Manager/issues)提交bug或功能请求
-- 代码贡献：Fork仓库并提交拉取请求
+- 问题反馈：在[Issues页面](https://github.com/add-qwq/CRCMenu-Manager/issues)提交bug或功能请求。
+- 代码贡献：Fork仓库并提交拉取请求。
