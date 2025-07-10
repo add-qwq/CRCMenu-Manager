@@ -55,7 +55,7 @@ For developers or users who prefer local builds:
 
 #### Steps
 1. Download the source code:
-   - Click Code → Download ZIP on the [GitHub repo](https://github.com/add-qwq/CRCMenu-Manager).
+   - Click Code → Download ZIP on the [GitHub repo](https://github.com/add-qwq/CRCMenu-Manager/releases).
    - Extract the ZIP file.
 
 2. Run the program:
