@@ -86,7 +86,7 @@ Parameters:
 For macOS/Linux: Use the same command, replacing ";" with ":" in file paths if necessary.
 
 ## Interface Overview
-![English Interface](https://github.com/add-qwq/CRCMenu-Manager/blob/main/CRCMenu-Manager-EN.png?raw=true)
+![English Interface](https://github.com/add-qwq/CRCMenu-Manager/blob/main/CRCMenu-Manager-EN2.png?raw=true)
 - **Mode Dropdown**: Select "Update JS Version", "Inject Content", or "Delete Content".
 - **Input Fields**: Two fields for Font Awesome (optional) and JS (mandatory) codes.
 - **File List**: View, add, remove, or clear selected files.
@@ -244,7 +244,7 @@ pyinstaller -w -F --name "CRCMenu-Manager.exe" CRCMenu-Manager.py  # 生成Windo
 适用于macOS/Linux：使用相同命令，必要时将文件路径中的“;”替换为“:”
 
 ## 界面概览
-![中文界面](https://github.com/add-qwq/CRCMenu-Manager/blob/main/CRCMenu-Manager-CN.png?raw=true)
+![中文界面](https://github.com/add-qwq/CRCMenu-Manager/blob/main/CRCMenu-Manager-CN2.png?raw=true)
 - **模式下拉框**：选择“更新JS版本”“注入内容”或“删除内容”
 - **输入框**：两个输入框分别用于Font Awesome（选填）和JS（必填）代码
 - **文件列表**：查看、添加、移除或清空已选择的文件
