@@ -16,15 +16,12 @@ class ProcessThread(QThread):
     file_processed = Signal(str, bool)
     operation_completed = Signal(bool)
     
-    def __init__(self, file_list, font_awesome_code, css_code, js_code, html_code, mode):
+    def __init__(self, file_list, font_awesome_code, js_code, mode):
         super().__init__()
         self.file_list = file_list
         self.font_awesome_code = font_awesome_code
-        self.css_code = css_code
         self.js_code = js_code
-        self.html_code = html_code
         self.mode = mode
-        
         self.common_timestamp = time.time()
         
     def run(self):
@@ -64,46 +61,31 @@ class ProcessThread(QThread):
         try:
             hash_value = hashlib.md5(str(self.common_timestamp).encode()).hexdigest()[:8]
             
-            css_pattern = r'(<link[^>]*href=["\'][^"\']*CRCMenu\.css)(?:\?v=[^"\']*)?(["\'][^>]*)>'
-            new_css = r'\1?v=' + hash_value + r'\2>'
-            new_content = re.sub(css_pattern, new_css, content, flags=re.IGNORECASE)
-            
             js_pattern = r'(<script[^>]*src=["\'][^"\']*CRCMenu\.js)(?:\?v=[^"\']*)?(["\'][^>]*)>'
             new_js = r'\1?v=' + hash_value + r'\2>'
-            new_content = re.sub(js_pattern, new_js, new_content, flags=re.IGNORECASE)
+            new_content = re.sub(js_pattern, new_js, content, flags=re.IGNORECASE)
             
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(new_content)
             return True
         except Exception as e:
-            print(f"Error updating versions {file_path}: {e}")
+            print(f"Error updating JS version {file_path}: {e}")
             return False
     
     def _inject_content(self, content, file_path):
         try:
-            head_index = content.lower().rfind('</head>')
-            if head_index == -1:
-                return False
-                
-            body_start = content.lower().find('<body')
-            body_end = content.lower().rfind('</body>')
-            if body_start == -1 or body_end == -1:
-                return False
-                
-            body_tag_end = content.find('>', body_start)
-            if body_tag_end == -1:
-                return False
 
-            font_awesome_pattern = r'<link[^>]*href=["\'][^"\']*font-awesome[^"\']*["\'][^>]*>'
-            font_awesome_insert = self.font_awesome_code + '\n' if self.font_awesome_code and not re.search(font_awesome_pattern, content, re.IGNORECASE) else ''
+            new_content = content
+            if self.font_awesome_code:
+                head_index = content.lower().rfind('</head>')
+                if head_index != -1:
+                    new_content = (content[:head_index] + '\n' + self.font_awesome_code + '\n' + 
+                                  content[head_index:])
 
-            html_insert_pos = body_tag_end + 1
-            js_insert_pos = body_end
-            
-            new_content = (content[:head_index] + font_awesome_insert + self.css_code + '\n' + 
-                          content[head_index:html_insert_pos] + '\n' + self.html_code + '\n' + 
-                          content[html_insert_pos:js_insert_pos] + '\n' + self.js_code + '\n' + 
-                          content[js_insert_pos:])
+            body_end = new_content.lower().rfind('</body>')
+            if body_end == -1:
+                return False
+            new_content = new_content[:body_end] + '\n' + self.js_code + '\n' + new_content[body_end:]
             
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(new_content)
@@ -114,17 +96,16 @@ class ProcessThread(QThread):
 
     def _delete_content(self, content, file_path):
         try:
+
+            new_content = content
             if self.font_awesome_code:
-                content = content.replace(self.font_awesome_code, '')
-            if self.css_code:
-                content = content.replace(self.css_code, '')
+                new_content = new_content.replace(self.font_awesome_code, '')
+
             if self.js_code:
-                content = content.replace(self.js_code, '')
-            if self.html_code:
-                content = content.replace(self.html_code, '')
+                new_content = new_content.replace(self.js_code, '')
 
             with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(content)
+                f.write(new_content)
             return True
         except Exception as e:
             print(f"Error deleting content {file_path}: {e}")
@@ -137,9 +118,7 @@ class CRCMenuManager(QMainWindow):
         self.file_list_path = "CRCMenu-Manager_file_list.json"
         self.language = "zh"
         self.font_awesome_code = ''
-        self.css_code = ''
         self.js_code = ''
-        self.html_code = ''
         self.last_json_mtime = 0
         
         self.is_saving = False
@@ -159,8 +138,8 @@ class CRCMenuManager(QMainWindow):
                 "clear_files_btn": "清空文件列表",
                 "execute_btn": "执行操作",
                 "no_files_msg": "请先选择要处理的文件",
-                "confirm_update_msg": "确定要更新 {} 个文件的版本吗？\n操作前会自动创建备份文件。",
-                "confirm_inject_msg": "确定要在 {} 个文件中引入右键菜单吗？\n操作前会自动创建备份文件。",
+                "confirm_update_msg": "确定要更新 {} 个文件的JS版本吗？\n操作前会自动创建备份文件。",
+                "confirm_inject_msg": "确定要在 {} 个文件中引入内容吗？\n（JS为必填，Font Awesome为选填）\n操作前会自动创建备份文件。",
                 "confirm_delete_msg": "确定要在 {} 个文件中删除指定内容吗？\n操作前会自动创建备份文件。",
                 "success_msg": "所有文件处理成功！",
                 "partial_fail_msg": "部分文件处理失败，请查看状态栏信息",
@@ -174,16 +153,14 @@ class CRCMenuManager(QMainWindow):
                 "complete_title": "完成",
                 "partial_fail_title": "部分失败",
                 "load_error_title": "加载错误",
-                "font_awesome_label": "Font Awesome 引入代码：",
-                "css_code_label": "CSS 引入代码：",
-                "js_code_label": "JS 引入代码：",
-                "html_code_label": "右键菜单 HTML 代码：",
+                "font_awesome_label": "Font Awesome 引入代码（选填）：",
+                "js_code_label": "JS 引入代码（必填）：",
                 "save_success_msg": "配置已保存",
                 "invalid_config_msg": "配置文件格式不正确，已重置",
                 "mode_labels": {
-                    "update": "更新版本",
-                    "inject": "引入项目",
-                    "delete": "删除项目"
+                    "update": "更新JS版本",
+                    "inject": "注入内容",
+                    "delete": "删除内容"
                 }
             },
             "en": {
@@ -194,8 +171,8 @@ class CRCMenuManager(QMainWindow):
                 "clear_files_btn": "Clear File List",
                 "execute_btn": "Execute Operation",
                 "no_files_msg": "Please select files to process first",
-                "confirm_update_msg": "Are you sure you want to update versions for {} files?\nBackup files will be created automatically.",
-                "confirm_inject_msg": "Are you sure you want to inject right-click menu into {} files?\nBackup files will be created automatically.",
+                "confirm_update_msg": "Are you sure you want to update JS versions for {} files?\nBackup files will be created automatically.",
+                "confirm_inject_msg": "Are you sure you want to inject content into {} files?\n(JS is required, Font Awesome is optional)\nBackup files will be created automatically.",
                 "confirm_delete_msg": "Are you sure you want to delete specified content from {} files?\nBackup files will be created automatically.",
                 "success_msg": "All files processed successfully!",
                 "partial_fail_msg": "Some files failed to process, please check the status bar for details",
@@ -209,16 +186,14 @@ class CRCMenuManager(QMainWindow):
                 "complete_title": "Completed",
                 "partial_fail_title": "Partial Failure",
                 "load_error_title": "Load Error",
-                "font_awesome_label": "Font Awesome Include Code:",
-                "css_code_label": "CSS Include Code:",
-                "js_code_label": "JS Include Code:",
-                "html_code_label": "Right-Click Menu HTML Code:",
+                "font_awesome_label": "Font Awesome Include Code (Optional):",
+                "js_code_label": "JS Include Code (Required):",
                 "save_success_msg": "Configuration saved",
                 "invalid_config_msg": "Invalid configuration format, resetting",
                 "mode_labels": {
-                    "update": "Update Version",
-                    "inject": "Inject Project",
-                    "delete": "Delete Project"
+                    "update": "Update JS Version",
+                    "inject": "Inject Content",
+                    "delete": "Delete Content"
                 }
             }
         }
@@ -245,9 +220,6 @@ class CRCMenuManager(QMainWindow):
         palette.setColor(QPalette.Text, QColor(33, 33, 33))
         palette.setColor(QPalette.Button, QColor(220, 220, 220))
         palette.setColor(QPalette.ButtonText, QColor(33, 33, 33))
-        palette.setColor(QPalette.BrightText, QColor(255, 255, 255))
-        palette.setColor(QPalette.Link, QColor(0, 120, 215))
-        palette.setColor(QPalette.Highlight, QColor(0, 120, 215))
         app.setPalette(palette)
         
         central_widget = QWidget()
@@ -271,7 +243,6 @@ class CRCMenuManager(QMainWindow):
         main_layout.addWidget(self.font_awesome_label)
         
         self.font_awesome_edit = QTextEdit()
-        self.font_awesome_edit.setPlaceholderText(self.texts[self.language]["font_awesome_label"].split("：")[1] if self.language == "zh" else self.texts[self.language]["font_awesome_label"].split(":")[1])
         self.font_awesome_edit.setStyleSheet("""
             QTextEdit {
                 background-color: #ffffff;
@@ -285,24 +256,7 @@ class CRCMenuManager(QMainWindow):
         self.font_awesome_edit.textChanged.connect(self.schedule_save)
         main_layout.addWidget(self.font_awesome_edit)
 
-        self.css_code_label = QLabel(self.get_mode_specific_label("css"))
-        self.css_code_label.setStyleSheet("color: #555555; margin-bottom: 5px;")
-        main_layout.addWidget(self.css_code_label)
-        
-        self.css_code_edit = QTextEdit()
-        self.css_code_edit.setStyleSheet("""
-            QTextEdit {
-                background-color: #ffffff;
-                border: 1px solid #d0d0d0;
-                border-radius: 5px;
-                padding: 5px;
-                color: #212121;
-            }
-        """)
-        self.css_code_edit.setText(self.css_code)
-        self.css_code_edit.textChanged.connect(self.schedule_save)
-        main_layout.addWidget(self.css_code_edit)
-
+        # JS输入框（必填）
         self.js_code_label = QLabel(self.get_mode_specific_label("js"))
         self.js_code_label.setStyleSheet("color: #555555; margin-bottom: 5px;")
         main_layout.addWidget(self.js_code_label)
@@ -320,24 +274,6 @@ class CRCMenuManager(QMainWindow):
         self.js_code_edit.setText(self.js_code)
         self.js_code_edit.textChanged.connect(self.schedule_save)
         main_layout.addWidget(self.js_code_edit)
-
-        self.html_code_label = QLabel(self.get_mode_specific_label("html"))
-        self.html_code_label.setStyleSheet("color: #555555; margin-bottom: 5px;")
-        main_layout.addWidget(self.html_code_label)
-        
-        self.html_code_edit = QTextEdit()
-        self.html_code_edit.setStyleSheet("""
-            QTextEdit {
-                background-color: #ffffff;
-                border: 1px solid #d0d0d0;
-                border-radius: 5px;
-                padding: 5px;
-                color: #212121;
-            }
-        """)
-        self.html_code_edit.setText(self.html_code)
-        self.html_code_edit.textChanged.connect(self.schedule_save)
-        main_layout.addWidget(self.html_code_edit)
 
         self.list_label = QLabel(self.texts[self.language]["file_list_label"])
         self.list_label.setStyleSheet("color: #555555; margin-bottom: 5px;")
@@ -481,48 +417,28 @@ class CRCMenuManager(QMainWindow):
 
         base_labels = {
             "font_awesome": {
-                "update": "Font Awesome 引入代码：",
-                "inject": "Font Awesome 引入代码：",
-                "delete": "要删除的 Font Awesome 引入代码："
-            },
-            "css": {
-                "update": "CSS 引入代码：",
-                "inject": "CSS 引入代码：",
-                "delete": "要删除的 CSS 引入代码："
+                "update": "Font Awesome 引入代码（选填）：",
+                "inject": "Font Awesome 引入代码（选填）：",
+                "delete": "要删除的 Font Awesome 代码（选填）："
             },
             "js": {
-                "update": "JS 引入代码：",
-                "inject": "JS 引入代码：",
-                "delete": "要删除的 JS 引入代码："
-            },
-            "html": {
-                "update": "右键菜单 HTML 代码：",
-                "inject": "右键菜单 HTML 代码：",
-                "delete": "要删除的右键菜单 HTML 代码："
+                "update": "JS 引入代码（必填）：",
+                "inject": "JS 引入代码（必填）：",
+                "delete": "要删除的 JS 代码（必填）："
             }
         }
         
         if self.language == "en":
             en_labels = {
                 "font_awesome": {
-                    "update": "Font Awesome Include Code:",
-                    "inject": "Font Awesome Include Code:",
-                    "delete": "Font Awesome Include Code to Delete:"
-                },
-                "css": {
-                    "update": "CSS Include Code:",
-                    "inject": "CSS Include Code:",
-                    "delete": "CSS Include Code to Delete:"
+                    "update": "Font Awesome Include Code (Optional):",
+                    "inject": "Font Awesome Include Code (Optional):",
+                    "delete": "Font Awesome Code to Delete (Optional):"
                 },
                 "js": {
-                    "update": "JS Include Code:",
-                    "inject": "JS Include Code:",
-                    "delete": "JS Include Code to Delete:"
-                },
-                "html": {
-                    "update": "Right-Click Menu HTML Code:",
-                    "inject": "Right-Click Menu HTML Code:",
-                    "delete": "Right-Click Menu HTML Code to Delete:"
+                    "update": "JS Include Code (Required):",
+                    "inject": "JS Include Code (Required):",
+                    "delete": "JS Code to Delete (Required):"
                 }
             }
             return en_labels[code_type][mode]
@@ -531,9 +447,7 @@ class CRCMenuManager(QMainWindow):
     
     def update_input_labels(self):
         self.font_awesome_label.setText(self.get_mode_specific_label("font_awesome"))
-        self.css_code_label.setText(self.get_mode_specific_label("css"))
         self.js_code_label.setText(self.get_mode_specific_label("js"))
-        self.html_code_label.setText(self.get_mode_specific_label("html"))
     
     def style_button(self, button):
         button.setStyleSheet("""
@@ -588,13 +502,10 @@ class CRCMenuManager(QMainWindow):
         self.clear_files_btn.setText(self.texts[self.language]["clear_files_btn"])
         self.execute_btn.setText(self.texts[self.language]["execute_btn"])
         self.toggle_lang_btn.setText(self.texts[self.language]["toggle_lang_btn"])
-        self.font_awesome_edit.setPlaceholderText(self.texts[self.language]["font_awesome_label"].split("：")[1] if self.language == "zh" else self.texts[self.language]["font_awesome_label"].split(":")[1])
     
     def schedule_save(self):
         self.font_awesome_code = self.font_awesome_edit.toPlainText().strip()
-        self.css_code = self.css_code_edit.toPlainText().strip()
         self.js_code = self.js_code_edit.toPlainText().strip()
-        self.html_code = self.html_code_edit.toPlainText().strip()
         
         if self.is_saving:
             self.pending_save = True
@@ -615,9 +526,7 @@ class CRCMenuManager(QMainWindow):
             data = {
                 "files": [self.file_list_widget.item(i).text() for i in range(self.file_list_widget.count())],
                 "font_awesome_code": self.font_awesome_code,
-                "css_code": self.css_code,
-                "js_code": self.js_code,
-                "html_code": self.html_code
+                "js_code": self.js_code
             }
             
             with open(self.file_list_path, 'w', encoding='utf-8') as f:
@@ -642,24 +551,16 @@ class CRCMenuManager(QMainWindow):
                 with open(self.file_list_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     self.font_awesome_code = data.get("font_awesome_code", '')
-                    self.css_code = data.get("css_code", '')
                     self.js_code = data.get("js_code", '')
-                    self.html_code = data.get("html_code", '')
-                    
+
                     self.font_awesome_edit.textChanged.disconnect()
-                    self.css_code_edit.textChanged.disconnect()
                     self.js_code_edit.textChanged.disconnect()
-                    self.html_code_edit.textChanged.disconnect()
                     
                     self.font_awesome_edit.setText(self.font_awesome_code)
-                    self.css_code_edit.setText(self.css_code)
                     self.js_code_edit.setText(self.js_code)
-                    self.html_code_edit.setText(self.html_code)
                     
                     self.font_awesome_edit.textChanged.connect(self.schedule_save)
-                    self.css_code_edit.textChanged.connect(self.schedule_save)
                     self.js_code_edit.textChanged.connect(self.schedule_save)
-                    self.html_code_edit.textChanged.connect(self.schedule_save)
         except Exception as e:
             print(f"加载配置文件出错: {e}")
             QMessageBox.warning(self, self.texts[self.language]["load_error_title"], 
@@ -709,13 +610,13 @@ class CRCMenuManager(QMainWindow):
             QMessageBox.information(self, self.texts[self.language]["complete_title"], 
                                   self.texts[self.language]["no_files_msg"])
             return
-        
-        if mode == "inject" and (not self.css_code or not self.js_code or not self.html_code):
+
+        if (mode == "inject" or mode == "delete") and not self.js_code:
             QMessageBox.warning(self, self.texts[self.language]["partial_fail_title"], 
-                              "请提供完整的CSS、JS和HTML代码" if self.language == "zh" else 
-                              "Please provide complete CSS, JS, and HTML code")
+                              "请提供JS代码（必填）" if self.language == "zh" else 
+                              "Please provide JS code (required)")
             return
-        
+
         confirm_msg_key = {
             "update": "confirm_update_msg",
             "inject": "confirm_inject_msg",
@@ -733,10 +634,8 @@ class CRCMenuManager(QMainWindow):
 
             self.process_thread = ProcessThread(
                 file_list, 
-                self.font_awesome_code, 
-                self.css_code, 
-                self.js_code, 
-                self.html_code, 
+                self.font_awesome_code,
+                self.js_code,
                 mode
             )
             self.process_thread.progress_updated.connect(self.update_progress)
@@ -749,9 +648,7 @@ class CRCMenuManager(QMainWindow):
             self.clear_files_btn.setEnabled(False)
             self.toggle_lang_btn.setEnabled(False)
             self.font_awesome_edit.setEnabled(False)
-            self.css_code_edit.setEnabled(False)
             self.js_code_edit.setEnabled(False)
-            self.html_code_edit.setEnabled(False)
             self.statusBar.showMessage(self.texts[self.language]["processing_msg"])
             self.progress_bar.setValue(0)
             
@@ -778,9 +675,7 @@ class CRCMenuManager(QMainWindow):
         self.clear_files_btn.setEnabled(True)
         self.toggle_lang_btn.setEnabled(True)
         self.font_awesome_edit.setEnabled(True)
-        self.css_code_edit.setEnabled(True)
         self.js_code_edit.setEnabled(True)
-        self.html_code_edit.setEnabled(True)
         self.schedule_save()
 
     def start_json_watcher(self):
